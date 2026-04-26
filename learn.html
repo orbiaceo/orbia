@@ -51,9 +51,7 @@ button#sb:disabled{opacity:0.4;cursor:not-allowed}
   </div>
 </main>
 <script>
-const KEY='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';
-const MODEL='claude-sonnet-4-20250514';
-const API='https://api.anthropic.com/v1/messages';
+const API='/.netlify/functions/chat';
 
 const SYSTEM=`Du bist Lola, die persönliche Sprachlernberaterin von Orbia.
 Persönlichkeit: Warm, professionell, direkt. Sie siezen immer. Spanische Seele, deutsche Präzision. Kurze Sätze. Immer nur EINE Frage.
@@ -63,19 +61,13 @@ Danach erstelle eine erste Lektion passend zum Profil und führe den Schüler du
 Metasprachliche Erklärungen immer in der Muttersprache des Schülers.`;
 
 let history=[];
-let phase='intake';
 
 async function ask(userMsg){
   history.push({role:'user',content:userMsg});
   const r=await fetch(API,{
     method:'POST',
-    headers:{
-      'Content-Type':'application/json',
-      'x-api-key':KEY,
-      'anthropic-version':'2023-06-01',
-      'anthropic-dangerous-direct-browser-access':'true'
-    },
-    body:JSON.stringify({model:MODEL,max_tokens:800,system:SYSTEM,messages:history})
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({system:SYSTEM,messages:history,maxTokens:800})
   });
   const d=await r.json();
   const reply=d.content[0].text;
@@ -128,7 +120,6 @@ async function send(){
     hideTyping();
     if(reply.includes('INTAKE_COMPLETE')){
       addMsg('lola','Perfekt — ich habe alle Informationen. Einen Moment, ich bereite Ihre erste Lektion vor...');
-      phase='lesson';
     } else {
       addMsg('lola',reply.replace(/\n/g,'<br>'));
       const low=reply.toLowerCase();
@@ -163,13 +154,8 @@ document.getElementById('ti').addEventListener('keydown',function(e){
   try{
     const r=await fetch(API,{
       method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'x-api-key':KEY,
-        'anthropic-version':'2023-06-01',
-        'anthropic-dangerous-direct-browser-access':'true'
-      },
-      body:JSON.stringify({model:MODEL,max_tokens:300,system:SYSTEM,messages:[{role:'user',content:'Starte die Begrüßung auf Deutsch.'}]})
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({system:SYSTEM,messages:[{role:'user',content:'Starte die Begrüßung auf Deutsch.'}],maxTokens:300})
     });
     const d=await r.json();
     const reply=d.content[0].text;
