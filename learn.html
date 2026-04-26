@@ -467,7 +467,8 @@
 
 <script>
 // ─── CONFIG ───────────────────────────────────────────────────────────────────
-const CLAUDE_API = '/api/chat';
+const CLAUDE_API = 'https://api.anthropic.com/v1/messages';
+const ANTHROPIC_KEY = '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';
 const MODEL = 'claude-sonnet-4-20250514';
 
 // ─── STATE ────────────────────────────────────────────────────────────────────
@@ -561,7 +562,11 @@ Bewerte die Antworten des Schülers. Antworte NUR mit JSON ohne Backticks:
 async function callClaude(system, messages, maxTokens = 1000) {
   const res = await fetch(CLAUDE_API, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': ANTHROPIC_KEY,
+      'anthropic-version': '2023-06-01'
+    },
     body: JSON.stringify({ model: MODEL, max_tokens: maxTokens, system, messages })
   });
   if (!res.ok) throw new Error('API ' + res.status);
