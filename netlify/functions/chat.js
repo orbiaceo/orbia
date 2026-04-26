@@ -1,14 +1,17 @@
 exports.handler = async (event) => {
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Content-Type': 'application/json'
+  };
+
   if (event.httpMethod === 'OPTIONS') {
-    return {
-      statusCode: 200,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS'
-      },
-      body: ''
-    };
+    return { statusCode: 200, headers, body: '' };
+  }
+
+  if (!event.body) {
+    return { statusCode: 400, headers, body: JSON.stringify({ error: 'No body' }) };
   }
 
   const { system, messages, maxTokens } = JSON.parse(event.body);
@@ -29,13 +32,9 @@ exports.handler = async (event) => {
   });
 
   const data = await response.json();
-
   return {
     statusCode: response.ok ? 200 : response.status,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Content-Type': 'application/json'
-    },
+    headers,
     body: JSON.stringify(data)
   };
 };
