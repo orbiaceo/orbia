@@ -51,7 +51,7 @@ button#sb:disabled{opacity:0.4;cursor:not-allowed}
   </div>
 </main>
 <script>
-const API='/.netlify/functions/chat';
+const API='https://eloquent-pony-7b5217.netlify.app/.netlify/functions/chat';
 const SYSTEM=`Du bist Lola, die persönliche Sprachlernberaterin von Orbia. Warm, professionell, direkt. Sie siezen immer. Kurze Sätze. Immer nur EINE Frage. Führe eine Bedarfsanalyse durch: Name, Muttersprache, Zielsprache, Niveau, Ziel, Zeitrahmen. Metasprachliche Erklärungen immer in der Muttersprache des Schülers.`;
 
 let history=[];
@@ -126,7 +126,7 @@ async function send(){
     }
   } catch(e){
     hideTyping();
-    addMsg('lola','Entschuldigung, kurzer Fehler: '+e.message);
+    addMsg('lola','Fehler: '+e.message);
   }
   sb.disabled=false;
   ti.focus();
@@ -140,7 +140,6 @@ document.getElementById('ti').addEventListener('keydown',function(e){
   if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}
 });
 
-// Lola startet
 (async()=>{
   showTyping();
   try{
@@ -151,7 +150,7 @@ document.getElementById('ti').addEventListener('keydown',function(e){
     setQR(['Spanisch lernen','Deutsch lernen','Englisch lernen']);
   } catch(e){
     hideTyping();
-    addMsg('lola','Hola! Ich bin Lola. Wie heißen Sie? Fehler: '+e.message);
+    addMsg('lola','Fehler beim Start: '+e.message);
   }
 })();
 </script>
