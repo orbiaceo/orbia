@@ -52,34 +52,26 @@ button#sb:disabled{opacity:0.4;cursor:not-allowed}
 </main>
 <script>
 const API='/.netlify/functions/chat';
-
-const SYSTEM=`Du bist Lola, die persönliche Sprachlernberaterin von Orbia.
-Persönlichkeit: Warm, professionell, direkt. Sie siezen immer. Spanische Seele, deutsche Präzision. Kurze Sätze. Immer nur EINE Frage.
-Aufgabe PHASE 1: Führe Bedarfsanalyse durch. Kläre: 1.Name 2.Muttersprache 3.Zielsprache 4.Niveau 5.Ziel 6.Zeitrahmen
-Wenn alle 6 Punkte klar sind, antworte mit: INTAKE_COMPLETE
-Danach erstelle eine erste Lektion passend zum Profil und führe den Schüler durch 3 Übungen.
-Metasprachliche Erklärungen immer in der Muttersprache des Schülers.`;
+const SYSTEM=`Du bist Lola, die persönliche Sprachlernberaterin von Orbia. Warm, professionell, direkt. Sie siezen immer. Kurze Sätze. Immer nur EINE Frage. Führe eine Bedarfsanalyse durch: Name, Muttersprache, Zielsprache, Niveau, Ziel, Zeitrahmen. Metasprachliche Erklärungen immer in der Muttersprache des Schülers.`;
 
 let history=[];
 
-async function ask(userMsg){
-  history.push({role:'user',content:userMsg});
+async function callLola(messages){
   const r=await fetch(API,{
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({system:SYSTEM,messages:history,maxTokens:800})
+    body:JSON.stringify({system:SYSTEM,messages:messages,maxTokens:500})
   });
+  if(!r.ok) throw new Error('HTTP '+r.status);
   const d=await r.json();
-  const reply=d.content[0].text;
-  history.push({role:'assistant',content:reply});
-  return reply;
+  return d.content[0].text;
 }
 
-function addMsg(role,html){
+function addMsg(role,text){
   const chat=document.getElementById('chat');
   const m=document.createElement('div');
   m.className='msg '+role;
-  m.innerHTML=`<div class="av ${role}">${role==='lola'?'LO':'SIE'}</div><div class="bub ${role}">${html}</div>`;
+  m.innerHTML=`<div class="av ${role}">${role==='lola'?'LO':'SIE'}</div><div class="bub ${role}">${text.replace(/\n/g,'<br>')}</div>`;
   chat.appendChild(m);
   chat.scrollTop=chat.scrollHeight;
 }
@@ -110,35 +102,34 @@ async function send(){
   const sb=document.getElementById('sb');
   const msg=ti.value.trim();
   if(!msg)return;
-  ti.value='';ti.style.height='auto';
+  ti.value='';
+  ti.style.height='auto';
   document.getElementById('qr').innerHTML='';
   addMsg('user',msg);
   sb.disabled=true;
   showTyping();
+  history.push({role:'user',content:msg});
   try{
-    const reply=await ask(msg);
+    const reply=await callLola(history);
+    history.push({role:'assistant',content:reply});
     hideTyping();
-    if(reply.includes('INTAKE_COMPLETE')){
-      addMsg('lola','Perfekt — ich habe alle Informationen. Einen Moment, ich bereite Ihre erste Lektion vor...');
-    } else {
-      addMsg('lola',reply.replace(/\n/g,'<br>'));
-      const low=reply.toLowerCase();
-      if(low.includes('niveau')||low.includes('kenntnisse')){
-        setQR(['Kompletter Anfänger','Grundkenntnisse','Mittelstufe','Fortgeschritten']);
-      } else if(low.includes('ziel')||low.includes('wozu')||low.includes('brauchen')){
-        setQR(['Urlaub & Reisen','Business-Meetings','Auswandern','Präsentationen']);
-      } else if(low.includes('wann')||low.includes('zeitrahmen')||low.includes('dringend')){
-        setQR(['1 Monat','3 Monate','6 Monate','Kein Zeitdruck']);
-      } else if(low.includes('sprache')||low.includes('lernen')){
-        setQR(['Spanisch','Deutsch','Englisch','Italienisch']);
-      }
+    addMsg('lola',reply);
+    const low=reply.toLowerCase();
+    if(low.includes('niveau')||low.includes('kenntnisse')){
+      setQR(['Kompletter Anfänger','Grundkenntnisse','Mittelstufe','Fortgeschritten']);
+    } else if(low.includes('ziel')||low.includes('wozu')){
+      setQR(['Urlaub','Business-Meetings','Auswandern','Präsentationen']);
+    } else if(low.includes('wann')||low.includes('zeitrahmen')){
+      setQR(['1 Monat','3 Monate','6 Monate','Kein Zeitdruck']);
+    } else if(low.includes('sprache')||low.includes('lernen')){
+      setQR(['Spanisch','Deutsch','Englisch','Italienisch']);
     }
   } catch(e){
     hideTyping();
-    addMsg('lola','Entschuldigung, es gab einen kurzen Fehler. Bitte versuchen Sie es nochmal.');
+    addMsg('lola','Entschuldigung, kurzer Fehler: '+e.message);
   }
   sb.disabled=false;
-  document.getElementById('ti').focus();
+  ti.focus();
 }
 
 document.getElementById('ti').addEventListener('input',function(){
@@ -149,23 +140,18 @@ document.getElementById('ti').addEventListener('keydown',function(e){
   if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}
 });
 
+// Lola startet
 (async()=>{
   showTyping();
   try{
-    const r=await fetch(API,{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({system:SYSTEM,messages:[{role:'user',content:'Starte die Begrüßung auf Deutsch.'}],maxTokens:300})
-    });
-    const d=await r.json();
-    const reply=d.content[0].text;
-    history.push({role:'assistant',content:reply});
+    const greeting=await callLola([{role:'user',content:'Begrüße mich herzlich auf Deutsch und stelle dich vor. Stelle dann die erste Frage.'}]);
+    history.push({role:'assistant',content:greeting});
     hideTyping();
-    addMsg('lola',reply.replace(/\n/g,'<br>'));
+    addMsg('lola',greeting);
     setQR(['Spanisch lernen','Deutsch lernen','Englisch lernen']);
   } catch(e){
     hideTyping();
-    addMsg('lola','Hola! Ich bin Lola, Ihre persönliche Sprachlernberaterin. Wie heißen Sie?');
+    addMsg('lola','Hola! Ich bin Lola. Wie heißen Sie? Fehler: '+e.message);
   }
 })();
 </script>
